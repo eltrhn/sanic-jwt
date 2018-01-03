@@ -70,7 +70,7 @@ async def retrieve_user(request, *args, **kwargs):
 
     try:
         payload = request.app.auth.extract_payload(request)
-        user = request.app.auth.retrieve_user(request, payload)
+        user = await request.app.auth.retrieve_user(request, payload)
     except exceptions.MissingAuthorizationCookie:
         user = None
         payload = None
@@ -97,14 +97,13 @@ async def verify(request, *args, **kwargs):
     if request.method == 'OPTIONS':
         return text('', status=204)
     is_valid, status, reason = request.app.auth.verify(request, *args, **kwargs)
-
+    
     response = {
         'valid': is_valid
     }
-
     if reason:
         response.update({'reason': reason})
-
+    
     return json(response, status=status)
 
 
@@ -115,9 +114,9 @@ async def refresh(request, *args, **kwargs):
     # TODO:
     # - Add exceptions
     payload = request.app.auth.extract_payload(request, verify=False)
-    user = request.app.auth.retrieve_user(request, payload=payload)
+    user = await request.app.auth.retrieve_user(request, payload=payload)
     user_id = request.app.auth._get_user_id(user)
-    refresh_token = request.app.auth.retrieve_refresh_token(request=request, user_id=user_id)
+    refresh_token = await request.app.auth.retrieve_refresh_token(request=request, user_id=user_id)
     if isinstance(refresh_token, bytes):
         refresh_token = refresh_token.decode('utf-8')
     refresh_token = str(refresh_token)
@@ -126,10 +125,32 @@ async def refresh(request, *args, **kwargs):
     purported_token = request.app.auth.retrieve_refresh_token_from_request(request)
     print('Purported token: ', purported_token)
 
-    if refresh_token != purported_token:
+    if refresh_token != purported_token or refresh_token is None:
         raise exceptions.AuthenticationFailed()
 
     access_token, output = await get_access_token_output(request, user)
     response = get_token_reponse(request, access_token, output)
 
     return response
+
+@bp.post('/logout')
+async def log_out(request, *args, **kwargs):
+    """
+    Deletion of access token will be handled client-side,
+    UNLESS the sanic-JWT user has enabled storage of access
+    token in an HTTPOnly cookie on the client side.
+    In that case, client being unable to access (much less
+    delete) the cookie, we must revoke it ourselves.
+    
+    ...so really, under the default circumstances (refresh
+    token and cookies disabled) this is essentially a noop.
+    """
+    is_valid, status, reason = request.app.auth.verify(request, *args, **kwargs)
+    if not is_valid:
+        return json({'is_valid': is_valid, 'reason': reason}, status=status)
+    
+    if request.app.config.SANIC_JWT_REFRESH_TOKEN_ENABLED:
+        await request.app.auth.revoke_refresh_token(user)
+    if request.app.config.SANIC_JWT_COOKIE_SET:
+        key = request.app.config.SANIC_JWT_COOKIE_TOKEN_NAME
+        response.cookies[key]['expires'] = 0

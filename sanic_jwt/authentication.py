@@ -17,10 +17,13 @@ class BaseAuthentication(object):
         self.authenticate = authenticate
         self.claims = ['exp']
 
-    def store_refresh_token(self, *args, **kwargs):
+    async def store_refresh_token(self, *args, **kwargs):
         raise exceptions.RefreshTokenNotImplemented()
 
-    def retrieve_refresh_token(self, *args, **kwargs):
+    async def retrieve_refresh_token(self, *args, **kwargs):
+        raise exceptions.RefreshTokenNotImplemented()
+    
+    async def revoke_refresh_token(self, *args, **kwargs):
         raise exceptions.RefreshTokenNotImplemented()
 
 
@@ -126,7 +129,7 @@ class SanicJWTAuthentication(BaseAuthentication):
     async def get_refresh_token(self, user):
         refresh_token = utils.generate_token()
         user_id = self._get_user_id(user)
-        self.store_refresh_token(user_id=user_id, refresh_token=refresh_token)
+        await self.store_refresh_token(user_id=user_id, refresh_token=refresh_token)
         return refresh_token
 
     def is_authenticated(self, request, *args, **kwargs):
@@ -166,7 +169,7 @@ class SanicJWTAuthentication(BaseAuthentication):
         # print(is_valid, status, reason)
 
         return is_valid, status, reason
-
+    
     def retrieve_refresh_token_from_request(self, request):
         return self._get_refresh_token(request)
 

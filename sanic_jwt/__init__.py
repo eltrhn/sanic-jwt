@@ -1,3 +1,5 @@
+import inspect
+
 from sanic_jwt.blueprint import bp as sanic_jwt_auth_bp
 from sanic_jwt.authentication import SanicJWTAuthentication
 
@@ -13,6 +15,7 @@ def initialize(
     class_views=None,
     store_refresh_token=None,
     retrieve_refresh_token=None,
+    revoke_refresh_token=None,
     retrieve_user=None,
 ):
     # Add settings
@@ -33,15 +36,26 @@ def initialize(
 
     # Setup authentication module
     app.auth = SanicJWTAuthentication(app, authenticate)
+    '''
+    _ = {
+         k: locals()[k]
+         for k, v in inspect.signature(initialize).parameters.items()
+         if v.default is None and k != 'class_views' # hm
+        }
+    for attr, value in _.items():
+        setattr(app.auth, attr, value)
+    '''
     if store_refresh_token:
         setattr(app.auth, 'store_refresh_token', store_refresh_token)
     if retrieve_refresh_token:
         setattr(app.auth, 'retrieve_refresh_token', retrieve_refresh_token)
+    if revoke_refresh_token:
+        setattr(app.auth, 'revoke_refresh_token', revoke_refresh_token)
     if retrieve_user:
         setattr(app.auth, 'retrieve_user', retrieve_user)
-
-    if app.config.SANIC_JWT_REFRESH_TOKEN_ENABLED and (
-        not store_refresh_token or
-        not retrieve_refresh_token
+    if app.config.SANIC_JWT_REFRESH_TOKEN_ENABLED and not all(
+        store_refresh_token,
+        retrieve_refresh_token,
+        revoke_refresh_token
     ):
         raise exceptions.RefreshTokenNotImplemented()

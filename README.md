@@ -8,21 +8,21 @@
 
 JSON Web Tokens for [Sanic](https://github.com/channelcat/sanic) applications. This project was originally inspired by [Flask JWT](https://github.com/mattupstate/flask-jwt) and [Django Rest Framework JWT](https://github.com/getBlimp/django-rest-framework-jwt), but some departing decisions have been made.
 
-1. [Getting Started](https://github.com/ahopkins/sanic-jwt#getting-started)
-1. [Authenticate](https://github.com/ahopkins/sanic-jwt#authenticate)
-    1. [`class_views`](https://github.com/ahopkins/sanic-jwt#class_views)
-    1. [`store_refresh_token`](https://github.com/ahopkins/sanic-jwt#store_refresh_token)
-    1. [`retrieve_refresh_token`](https://github.com/ahopkins/sanic-jwt#retrieve_refresh_token)
-    1. [`retrieve_user`](https://github.com/ahopkins/sanic-jwt#retrieve_user)
-1. [Other initialization parameters](https://github.com/ahopkins/sanic-jwt#other-initialization-parameters)
-1. [Endpoints](https://github.com/ahopkins/sanic-jwt#endpoints)
-    1. [`/auth`](https://github.com/ahopkins/sanic-jwt#auth)
-    1. [`/auth/verify`](https://github.com/ahopkins/sanic-jwt#authverify)
-    1. [`/auth/me`](https://github.com/ahopkins/sanic-jwt#authme)
-    1. [`/auth/refresh`](https://github.com/ahopkins/sanic-jwt#authrefresh)
-1. [Protecting routes](https://github.com/ahopkins/sanic-jwt#protecting-routes)
-1. [Scopes](https://github.com/ahopkins/sanic-jwt#scopes)
-1. [Settings](https://github.com/ahopkins/sanic-jwt#settings)
+1. [Getting Started](#getting-started)
+1. [Authenticate](#authenticate)
+    1. [`class_views`](#class_views)
+    1. [`store_refresh_token`](#store_refresh_token)
+    1. [`retrieve_refresh_token`](#retrieve_refresh_token)
+    1. [`retrieve_user`](#retrieve_user)
+1. [Other initialization parameters](#other-initialization-parameters)
+1. [Endpoints](#endpoints)
+    1. [`/auth`](#auth)
+    1. [`/auth/verify`](#authverify)
+    1. [`/auth/me`](authme)
+    1. [`/auth/refresh`](#authrefresh)
+1. [Protecting routes](#protecting-routes)
+1. [Scopes](#scopes)
+1. [Settings](#settings)
 
 ## Getting Started
 
@@ -132,11 +132,7 @@ Example:
 
     def store_refresh_token(user_id, refresh_token, *args, **kwargs):
         key = 'refresh_token_{user_id}'.format(user_id=user_id)
-
-        async def store(key):
-            await aredis.set(key, refresh_token)
-
-        app.add_task(store(key))
+        await aredis.set(key, refresh_token)
 
     initialize(
         app,
@@ -152,13 +148,9 @@ Purpose: **Required** if `SANIC_JWT_REFRESH_TOKEN_ENABLED` is set to `True` in t
 
 Example:
 
-    def retrieve_refresh_token(user_id, *args, **kwargs):
+    async def retrieve_refresh_token(user_id, *args, **kwargs):
         key = 'refresh_token_{user_id}'.format(user_id=user_id)
-
-        async def retrieve(key):
-            return await aredis.get(key)
-
-        app.add_task(retrieve(key))
+        return await aredis.get(key)
 
     initialize(
         app,
