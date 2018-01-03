@@ -1,12 +1,12 @@
-import inspect
-
-from sanic_jwt.blueprint import bp as sanic_jwt_auth_bp
-from sanic_jwt.authentication import SanicJWTAuthentication
+from sanic.response import text
+from sanic.views import HTTPMethodView
 
 from sanic_jwt import settings
 from sanic_jwt import exceptions
 from sanic_jwt import utils
-from sanic.views import HTTPMethodView
+
+from sanic_jwt.authentication import SanicJWTAuthentication
+from sanic_jwt.blueprint import bp as sanic_jwt_auth_bp
 
 
 def initialize(
@@ -25,26 +25,22 @@ def initialize(
         for route, view in class_views:
             try:
                 if issubclass(view, HTTPMethodView) and isinstance(route, str):
-                    sanic_jwt_auth_bp.add_route(view.as_view(), route)
+                    sanic_jwt_auth_bp.add_route(
+                                      view.as_view(),
+                                      route,
+                                      strict_slashes=app.config.SANIC_JWT_STRICT_SLASHES
+                                    )
                 else:
                     raise exceptions.InvalidClassViewsFormat()
             except TypeError:
                 raise exceptions.InvalidClassViewsFormat()
 
     # Add blueprint
+    # sanic_jwt_auth_bp.strict_slashes = app.strict_slashes
     app.blueprint(sanic_jwt_auth_bp, url_prefix=app.config.SANIC_JWT_URL_PREFIX)
 
     # Setup authentication module
     app.auth = SanicJWTAuthentication(app, authenticate)
-    '''
-    _ = {
-         k: locals()[k]
-         for k, v in inspect.signature(initialize).parameters.items()
-         if v.default is None and k != 'class_views' # hm
-        }
-    for attr, value in _.items():
-        setattr(app.auth, attr, value)
-    '''
     if store_refresh_token:
         setattr(app.auth, 'store_refresh_token', store_refresh_token)
     if retrieve_refresh_token:
@@ -59,3 +55,7 @@ def initialize(
         revoke_refresh_token
     ):
         raise exceptions.RefreshTokenNotImplemented()
+
+    @app.exception(exceptions.SanicJWTException)
+    def exception_response(request, exception):
+        return text(str(exception), status=exception.status_code)
