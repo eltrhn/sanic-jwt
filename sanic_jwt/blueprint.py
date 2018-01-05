@@ -145,6 +145,7 @@ async def log_out(request, *args, **kwargs):
     ...so really, under the default circumstances (refresh
     token and cookies disabled) this is essentially a noop.
     """
+    payload = request.app.auth.extract_payload(request, verify=False)
     user = await request.app.auth.retrieve_user(request, payload=payload)
     user_id = request.app.auth._get_user_id(user)
     
