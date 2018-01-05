@@ -153,9 +153,12 @@ async def log_out(request, *args, **kwargs):
     if not is_valid:
         return json({'is_valid': False, 'reason': reason}, status=status)
     
+    response = text('', status=204)
+    
     if request.app.config.SANIC_JWT_REFRESH_TOKEN_ENABLED:
         await request.app.auth.revoke_refresh_token(user_id)
     if request.app.config.SANIC_JWT_COOKIE_SET:
         key = request.app.config.SANIC_JWT_COOKIE_TOKEN_NAME
-        response.cookies[key]['expires'] = 0
-    return text('', status=204)
+        del response.cookies[key]
+    
+    return response
