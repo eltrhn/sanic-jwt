@@ -145,12 +145,16 @@ async def log_out(request, *args, **kwargs):
     ...so really, under the default circumstances (refresh
     token and cookies disabled) this is essentially a noop.
     """
+    user = await request.app.auth.retrieve_user(request, payload=payload)
+    user_id = request.app.auth._get_user_id(user)
+    
     is_valid, status, reason = request.app.auth.verify(request, *args, **kwargs)
     if not is_valid:
-        return json({'is_valid': is_valid, 'reason': reason}, status=status)
+        return json({'is_valid': False, 'reason': reason}, status=status)
     
     if request.app.config.SANIC_JWT_REFRESH_TOKEN_ENABLED:
-        await request.app.auth.revoke_refresh_token(user)
+        await request.app.auth.revoke_refresh_token(user_id)
     if request.app.config.SANIC_JWT_COOKIE_SET:
         key = request.app.config.SANIC_JWT_COOKIE_TOKEN_NAME
         response.cookies[key]['expires'] = 0
+    return text('', status=204)
