@@ -191,6 +191,8 @@ class SanicJWTAuthentication(BaseAuthentication):
         return payload.get(scopes_attribute, None)
 
     def extract_payload(self, request, verify=True, *args, **kwargs):
+        print(request.cookies)
+        print(dict(request.cookies))
         try:
             payload = self.verify(request, return_payload=True, verify=verify, *args, **kwargs)
         except Exception as e:
