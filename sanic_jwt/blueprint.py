@@ -159,6 +159,6 @@ async def log_out(request, *args, **kwargs):
         await request.app.auth.revoke_refresh_token(user_id)
     if request.app.config.SANIC_JWT_COOKIE_SET:
         key = request.app.config.SANIC_JWT_COOKIE_TOKEN_NAME
-        del response.cookies[key]
+        response.cookies[key]['expires'] = 0
     
     return response
